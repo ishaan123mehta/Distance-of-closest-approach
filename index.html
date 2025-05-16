@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Alpha Particle Scattering Simulation - Distance of Closest Approach</title>
+  <style>
+    body { 
+      margin: 0; 
+      overflow: hidden; 
+      font-family: Arial, sans-serif;
+      color: white;
+    }
+    canvas { display: block; }
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 15px;
+      border-radius: 8px;
+      width: 300px;
+      z-index: 100;
+    }
+    #educational {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 15px;
+      border-radius: 8px;
+      width: 300px;
+      max-height: 40%;
+      overflow-y: auto;
+      z-index: 100;
+    }
+    #physics-values {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 15px;
+      border-radius: 8px;
+      width: 300px;
+      z-index: 100;
+    }
+    .panel-title {
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #ffcc00;
+    }
+    .slider-container {
+      margin-bottom: 10px;
+    }
+    .slider-container label {
+      display: inline-block;
+      width: 100px;
+    }
+    .slider-container input {
+      width: 150px;
+      vertical-align: middle;
+    }
+    .button-container {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    button {
+      background: #4a4a9c;
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #6060c0;
+    }
+    .value-display {
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .value-name {
+      font-weight: bold;
+      color: #88ccff;
+    }
+    .explanation-step {
+      margin-bottom: 15px;
+      padding: 10px;
+      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.1);
+      display: none;
+    }
+    .active-step {
+      display: block;
+      border-left: 3px solid #ffcc00;
+    }
+    .formula {
+      font-family: 'Courier New', monospace;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 5px;
+      border-radius: 3px;
+      margin: 5px 0;
+    }
+    /* Add new popup styles */
+    #popupMessage {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      z-index: 1000;
+    }
+    #continueBtn {
+      margin-top: 10px;
+      padding: 8px 20px;
+      background: #4a4a9c;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #continueBtn:hover {
+      background: #6060c0;
+    }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <div class="panel-title">Simulation Controls</div>
+    <div class="slider-container">
+      <label>Speed:</label>
+      <input type="range" id="speedSlider" min="0.1" max="5" step="0.1" value="1">
+      <span id="speedValue">1.0</span>x
+    </div>
+    <div class="slider-container">
+      <label>Initial Energy:</label>
+      <input type="range" id="energySlider" min="1" max="10" step="0.5" value="5">
+      <span id="energyValue">5.0</span> MeV
+    </div>
+    <div class="button-container">
+      <button id="playPauseBtn">Pause</button>
+      <button id="resetBtn">Reset</button>
+      <button id="toggleVectorBtn">Hide Vector</button>
+    </div>
+  </div>
+
+  <div id="physics-values">
+    <div class="panel-title">Physics Values</div>
+    <div class="value-display">
+      <span class="value-name">Velocity:</span>
+      <span id="velocityValue">0 m/s</span>
+    </div>
+    <div class="value-display">
+      <span class="value-name">Distance:</span>
+      <span id="distanceValue">0 fm</span>
+    </div>
+    <div class="value-display">
+      <span class="value-name">Kinetic Energy:</span>
+      <span id="kineticValue">0 MeV</span>
+    </div>
+    <div class="value-display">
+      <span class="value-name">Potential Energy:</span>
+      <span id="potentialValue">0 MeV</span>
+    </div>
+    <div class="value-display">
+      <span class="value-name">Total Energy:</span>
+      <span id="totalEnergyValue">0 MeV</span>
+    </div>
+    <div class="value-display">
+      <span class="value-name">Closest Approach:</span>
+      <span id="closestApproachValue">0 fm</span>
+    </div>
+  </div>
+
+  <div id="educational">
+    <div class="panel-title">Rutherford Scattering Explanation</div>
+    <div id="step1" class="explanation-step active-step">
+      <strong>Step 1: Initial Approach</strong><br>
+      The alpha particle (He nucleus with charge +2e) approaches the gold nucleus (charge +79e). 
+      Both are positively charged, so they repel each other through the electrostatic force.
+    </div>
+    <div id="step2" class="explanation-step">
+      <strong>Step 2: Deceleration</strong><br>
+      As the alpha particle gets closer to the gold nucleus, the repulsive force increases, 
+      causing the particle to slow down. Kinetic energy is converted to potential energy.
+    </div>
+    <div id="step3" class="explanation-step">
+      <strong>Step 3: Distance of Closest Approach</strong><br>
+      At the closest approach distance, the alpha particle momentarily stops (v=0) before reversing direction. 
+      All initial kinetic energy has been converted to electrostatic potential energy.<br>
+      <div class="formula">
+        d = (1/4πε₀) × (2e × 79e)/(KE)
+      </div>
+      Where d is the distance of closest approach, e is elementary charge, and KE is initial kinetic energy.
+    </div>
+    <div id="step4" class="explanation-step">
+      <strong>Step 4: Acceleration Away</strong><br>
+      The alpha particle accelerates away from the gold nucleus, converting potential energy back to kinetic energy. 
+      The total energy remains constant throughout the interaction, demonstrating conservation of energy.
+    </div>
+    <div id="step5" class="explanation-step">
+      <strong>Theoretical Calculation</strong><br>
+      For an alpha particle with energy of 5.0 MeV approaching a gold nucleus, the theoretical distance of closest approach is approximately 36 femtometers.
+    </div>
+  </div>
+
+  <!-- Add popup message div before the script tags -->
+  <div id="popupMessage">
+    <div id="popupText">Alpha particle has reached zero velocity!</div>
+    <button id="continueBtn">Continue</button>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script>
+// Physics constants
+const ALPHA_CHARGE = 2;
+const GOLD_CHARGE = 79;
+const ALPHA_MASS = 4;
+const ENERGY_TO_VELOCITY_FACTOR = 13.832;
+const COULOMB_CONSTANT = 1.44;
+const BASE_SIMULATION_SPEED = 3.0; // Increased for better visibility
+
+// Camera positions
+const cameraInitialPosition = new THREE.Vector3(100, 0, 0);
+const cameraTargetPosition = new THREE.Vector3(5, 5, 10);
+const cameraAnimationDuration = 2;
+
+// Simulation variables
+let scene, camera, renderer, controls;
+let goldNucleus, electronCloud, alphaParticle;
+let alphaTrail = [];
+let nameplate;
+let velocityArrow; // Velocity vector arrow
+let showVelocityVector = true; // Toggle for velocity vector visibility
+let clock = new THREE.Clock();
+let simulationSpeed = 1.0;
+let initialEnergy = 5.0; // MeV
+let isPlaying = true;
+let closestApproachDistance = 0;
+let currentStep = 1;
+let alphaVelocity = new THREE.Vector3(0, 0, 0);
+let alphaInitialPosition = new THREE.Vector3(0, 0, -90);
+let hasReachedClosestPoint = false;
+let hasSimulationStarted = false;
+let isStopped = false;
+let cameraStopAnimation = false;
+let stopAnimationStart = 0;
+let initialVelocityMagnitude = 0; // Add initial velocity tracking
+
+// Initialize the simulation
+init();
+animate();
+
+function init() {
+  // Create scene
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x111122);
+  
+  // Create camera
+  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.copy(cameraInitialPosition); // Start at initial position
+  
+  // Create renderer
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  document.body.appendChild(renderer.domElement);
+  
+  // Add orbit controls
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
+  
+  // Increase ambient light intensity for overall scene illumination
+  const ambientLight = new THREE.AmbientLight(0xffffff, 2);
+  scene.add(ambientLight);
+  
+   const goldGeometry = new THREE.SphereGeometry(0.3, 32, 32);
+   const goldMaterial = new THREE.MeshStandardMaterial({
+   color: 0xffd700,
+   emissive: 0xffaa00,
+   emissiveIntensity: 0.3,
+   roughness: 0.3,
+   metalness: 1.0
+   });
+   goldNucleus = new THREE.Mesh(goldGeometry, goldMaterial);
+   goldNucleus.position.set(0, 0, 0);
+   scene.add(goldNucleus);
+  
+  // Create electron cloud (transparent blue sphere around nucleus)
+  const cloudGeometry = new THREE.SphereGeometry(40, 32, 32);
+  const cloudMaterial = new THREE.MeshStandardMaterial({
+    color: 0x88ccff,
+    transparent: true,
+    opacity: 0.2,
+    roughness: 1.0,
+    metalness: 0.0
+  });
+  electronCloud = new THREE.Mesh(cloudGeometry, cloudMaterial);
+  electronCloud.position.set(0, 0, 0);
+  scene.add(electronCloud);
+
+  // Add text label for electron cloud
+  // Create text sprite for electron cloud label
+  const cloudLabelCanvas = document.createElement('canvas');
+  const ctx = cloudLabelCanvas.getContext('2d');
+  cloudLabelCanvas.width = 256;
+  cloudLabelCanvas.height = 64;
+  
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(0, 0, cloudLabelCanvas.width, cloudLabelCanvas.height);
+  ctx.font = '24px Arial';
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'center';
+  ctx.fillText('Electron Cloud', cloudLabelCanvas.width/2, cloudLabelCanvas.height/2);
+
+  const cloudLabelTexture = new THREE.CanvasTexture(cloudLabelCanvas);
+  const cloudLabelMaterial = new THREE.SpriteMaterial({
+    map: cloudLabelTexture,
+    transparent: true
+  });
+  const cloudLabelSprite = new THREE.Sprite(cloudLabelMaterial);
+  cloudLabelSprite.scale.set(10, 2.5, 1);
+  cloudLabelSprite.position.set(0, 42, 0);
+  electronCloud.add(cloudLabelSprite);
+  
+  // Create alpha particle (red sphere)
+  const alphaGeometry = new THREE.SphereGeometry(0.2, 32, 32);
+  const alphaMaterial = new THREE.MeshStandardMaterial({
+    color: 0xff0000,
+    emissive: 0xff0000,
+    emissiveIntensity: 0.5,
+    roughness: 0.3,
+    metalness: 0.7
+  });
+  alphaParticle = new THREE.Mesh(alphaGeometry, alphaMaterial);
+  alphaParticle.position.copy(alphaInitialPosition);
+  scene.add(alphaParticle);
+  
+  // Create velocity vector arrow
+  createVelocityArrow();
+  
+  // Create nameplate for physics values
+  const nameplateGeometry = new THREE.PlaneGeometry(10, 5);
+  const nameplateTexture = createNameplateTexture();
+  const nameplateMaterial = new THREE.MeshBasicMaterial({
+    map: nameplateTexture,
+    transparent: true,
+    depthWrite: false
+  });
+  nameplate = new THREE.Mesh(nameplateGeometry, nameplateMaterial);
+  nameplate.position.set(0, -4, 0); // Adjusted y-coordinate to bring nameplate closer to alpha particle
+  nameplate.lookAt(camera.position);
+  alphaParticle.add(nameplate);
+  
+  // Create grid helper
+  const gridHelper = new THREE.GridHelper(100, 20, 0x444444, 0x222222);
+  //scene.add(gridHelper);
+  
+  // Create axes helper
+  const axesHelper = new THREE.AxesHelper(20);
+  //scene.add(axesHelper);
+  
+  // Initialize alpha particle velocity based on initial energy
+  resetSimulation();
+  
+  // Set up event listeners
+  window.addEventListener('resize', onWindowResize);
+  document.getElementById('speedSlider').addEventListener('input', updateSpeed);
+  document.getElementById('energySlider').addEventListener('input', updateEnergy);
+  document.getElementById('playPauseBtn').addEventListener('click', togglePlayPause);
+  document.getElementById('resetBtn').addEventListener('click', resetSimulation);
+  document.getElementById('toggleVectorBtn').addEventListener('click', toggleVelocityVector);
+}
+
+function createNameplateTexture(text) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 128;
+  const context = canvas.getContext('2d');
+  
+  // Fill background
+  context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.strokeStyle = '#ff0000';
+  context.lineWidth = 2;
+  context.strokeRect(0, 0, canvas.width, canvas.height);
+  
+  // Add text
+  context.fillStyle = '#ffffff';
+  context.font = '16px Arial';
+  context.fillText(text, 10, 25);
+  
+  const texture = new THREE.CanvasTexture(canvas);
+  return texture;
+}
+
+function updateNameplateTexture() {
+    const distance = alphaParticle.position.length();
+    const velocity = alphaVelocity.length();
+    const kineticEnergy = 0.5 * ALPHA_MASS * Math.pow(velocity, 2) / ENERGY_TO_VELOCITY_FACTOR;
+    const potentialEnergy = COULOMB_CONSTANT * ALPHA_CHARGE * GOLD_CHARGE / Math.max(distance, 0.1);
+    const totalEnergy = kineticEnergy + potentialEnergy;
+    
+    // Update the nameplate texture
+    const canvas = nameplate.material.map.image;
+    const context = canvas.getContext('2d');
+    
+    // Clear and redraw background
+    context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.strokeStyle = '#ff0000';
+    context.lineWidth = 2;
+    context.strokeRect(0, 0, canvas.width, canvas.height);
+    
+    // Add text
+    context.fillStyle = '#ffffff';
+    context.font = '14px Arial';
+    context.fillText('Alpha Particle', 10, 20);
+    context.fillText(`Velocity: ${velocity.toFixed(2)}`, 10, 40);
+    context.fillText(`Distance: ${distance.toFixed(2)} fm`, 10, 60);
+    context.fillText(`KE: ${kineticEnergy.toFixed(2)} MeV`, 10, 80);
+    context.fillText(`PE: ${potentialEnergy.toFixed(2)} MeV`, 10, 100);
+    
+    nameplate.material.map.needsUpdate = true;
+    
+    // Update the physics values panel with proper units
+    document.getElementById('velocityValue').textContent = `${velocity.toFixed(2)} c`;
+    document.getElementById('distanceValue').textContent = `${distance.toFixed(2)} fm`;
+    document.getElementById('kineticValue').textContent = `${kineticEnergy.toFixed(2)} MeV`;
+    document.getElementById('potentialValue').textContent = `${potentialEnergy.toFixed(2)} MeV`;
+    document.getElementById('totalEnergyValue').textContent = `${totalEnergy.toFixed(2)} MeV`;
+    document.getElementById('closestApproachValue').textContent = `${closestApproachDistance.toFixed(2)} fm`;
+    
+    // Update the nameplate orientation to face the camera
+    nameplate.lookAt(camera.position);
+}
+
+function updateSpeed() {
+  simulationSpeed = parseFloat(this.value);
+  document.getElementById('speedValue').textContent = simulationSpeed.toFixed(1);
+}
+
+function updateEnergy() {
+  initialEnergy = parseFloat(this.value);
+  document.getElementById('energyValue').textContent = initialEnergy.toFixed(1);
+  resetSimulation();
+}
+
+function togglePlayPause() {
+    isPlaying = !isPlaying;
+    document.getElementById('playPauseBtn').textContent = isPlaying ? 'Pause' : 'Play';
+    if (isPlaying) {
+        clock = new THREE.Clock(); // Create new clock when resuming
+        clock.start();
+    }
+}
+
+function resetSimulation() {
+    // Reset position
+    alphaParticle.position.copy(alphaInitialPosition);
+    
+    // Calculate initial velocity
+    const initialVelocity = Math.sqrt(2 * initialEnergy * ENERGY_TO_VELOCITY_FACTOR / ALPHA_MASS);
+    const directionToNucleus = new THREE.Vector3(0, 0, 1);
+    alphaVelocity = directionToNucleus.multiplyScalar(initialVelocity);
+    initialVelocityMagnitude = initialVelocity; // Store initial velocity magnitude
+    
+    // Reset simulation state
+    hasReachedClosestPoint = false;
+    hasSimulationStarted = false;
+    isStopped = false;
+    cameraStopAnimation = false;
+    currentStep = 1;
+    updateActiveStep();
+    
+    // Reset camera and controls
+    camera.position.copy(cameraInitialPosition);
+    controls.enabled = false;
+    
+    // Reset clock and start simulation
+    clock.start();
+    isPlaying = true;
+    
+    // Update UI
+    updateVelocityArrow();
+    document.getElementById('playPauseBtn').textContent = 'Pause';
+    hidePopupMessage();
+}
+
+function updateActiveStep() {
+  // Hide all steps
+  document.querySelectorAll('.explanation-step').forEach(step => {
+    step.classList.remove('active-step');
+  });
+  
+  // Show current step
+  document.getElementById(`step${currentStep}`).classList.add('active-step');
+}
+
+function addTrailPoint() {
+  // Create a small sphere at the current alpha particle position
+  const trailGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+  const trailMaterial = new THREE.MeshBasicMaterial({
+    color: 0xff6666,
+    transparent: true,
+    opacity: 0.7
+  });
+  const trailPoint = new THREE.Mesh(trailGeometry, trailMaterial);
+  trailPoint.position.copy(alphaParticle.position);
+  //scene.add(trailPoint);
+  
+  // Add to trail array and limit the number of trail points
+  alphaTrail.push(trailPoint);
+  if (alphaTrail.length > 100) {
+    scene.remove(alphaTrail[0]);
+    alphaTrail.shift();
+  }
+}
+
+function updateAlphaParticle(deltaTime) {
+    if (!isPlaying || isStopped) return;
+    
+    const scaledDelta = Math.min(deltaTime * simulationSpeed * BASE_SIMULATION_SPEED, 0.1);
+    
+    const distance = alphaParticle.position.length();
+    const forceMagnitude = COULOMB_CONSTANT * ALPHA_CHARGE * GOLD_CHARGE / 
+        Math.max(distance * distance, 0.1);
+    
+    const forceDirection = alphaParticle.position.clone().normalize();
+    const acceleration = forceDirection.multiplyScalar(forceMagnitude / ALPHA_MASS);
+    alphaVelocity.addScaledVector(acceleration, scaledDelta);
+    alphaParticle.position.addScaledVector(alphaVelocity, scaledDelta);
+    
+    // Modified velocity detection with energy-scaled threshold
+    const velocityThreshold = Math.max(0.5, initialEnergy * 0.1); // Scales with initial energy
+    if (alphaVelocity.length() < velocityThreshold && !isStopped && distance < 50) {
+        closestApproachDistance = distance;
+        isStopped = true;
+        cameraStopAnimation = true;
+        stopAnimationStart = clock.getElapsedTime();
+        showPopupMessage("Alpha particle has reached zero velocity!, This is the distance of closest approach and rutherford concluded that nucleus is smaller then distance of closest approach.this value will depend on the kinetic energy of alpha particle . To play with values and learn things you can set intial kinetic energy of alpha particles in Simulation controls");
+        togglePlayPause();
+    }
+    
+    // Update visuals
+    updateNameplateTexture();
+    updateVelocityArrow();
+    
+    // Check for closest approach
+    if (!hasReachedClosestPoint) {
+      // If the z component of velocity changes sign from negative to positive, we've reached closest approach
+      if (alphaVelocity.z > 0) {
+        hasReachedClosestPoint = true;
+        currentStep = 3;
+        updateActiveStep();
+        
+        const marker = new THREE.Mesh(markerGeometry, markerMaterial);
+        marker.position.copy(alphaParticle.position);
+        scene.add(marker);
+        alphaTrail.push(marker); // Add to trail for cleanup
+      }
+    } else if (distance > 50 && currentStep < 4) {
+      // Particle is moving away
+      currentStep = 4;
+      updateActiveStep();
+    } else if (distance > 80 && currentStep < 5) {
+      // Show theoretical calculation
+      currentStep = 5;
+      updateActiveStep();
+    }
+    
+    // Update step based on distance during approach
+    if (!hasReachedClosestPoint) {
+      if (distance < 50 && distance > 20 && currentStep < 2) {
+        currentStep = 2;
+        updateActiveStep();
+      }
+    }
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+    
+    const deltaTime = clock.getDelta();
+    const currentTime = clock.getElapsedTime();
+    
+    if (cameraStopAnimation) {
+        const deltaTime = clock.getDelta();
+        const progress = Math.min((currentTime - stopAnimationStart) / 2.0, 1.0);
+        
+        if (progress < 1.0) {
+            // Smoothly move camera to new position
+            const targetPos = new THREE.Vector3(5, 0, 0);
+            camera.position.lerp(targetPos, 0.05);
+            camera.lookAt(alphaParticle.position);
+        } else {
+            cameraStopAnimation = false;
+            controls.enabled = true;
+        }
+    }
+    
+    if (!hasSimulationStarted) {
+        // Camera animation
+        const progress = Math.min(clock.getElapsedTime() / cameraAnimationDuration, 1);
+        if (progress < 1) {
+            camera.position.lerpVectors(cameraInitialPosition, cameraTargetPosition, progress);
+        } else {
+            hasSimulationStarted = true;
+            controls.enabled = true;
+        }
+    }
+    
+    // Always update particle if playing, regardless of camera animation
+    if (isPlaying) {
+        updateAlphaParticle(deltaTime);
+    }
+    
+    controls.update();
+    renderer.render(scene, camera);
+}
+
+// Smoothstep function for smooth animation easing
+function smoothstep(min, max, value) {
+  const x = Math.max(0, Math.min(1, (value - min) / (max - min)));
+  return x * x * (3 - 2 * x);
+}
+
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+// Create velocity arrow function
+function createVelocityArrow() {
+  // Remove existing arrow if it exists
+  if (velocityArrow) {
+    scene.remove(velocityArrow);
+  }
+  
+  // Create arrow
+  const arrowDir = alphaVelocity.clone().normalize();
+  const arrowLength = alphaVelocity.length() * 0.5; // Scale for better visualization
+  const arrowColor = 0x00ff00; // Green color for velocity
+  
+  // Create arrow helper
+  velocityArrow = new THREE.ArrowHelper(
+    arrowDir,
+    alphaParticle.position,
+    arrowLength,
+    arrowColor,
+    0.5, // Head length
+    0.3  // Head width
+  );
+  
+  // Set visibility based on toggle
+  velocityArrow.visible = showVelocityVector;
+  
+  // Add to scene
+  scene.add(velocityArrow);
+}
+
+// Update velocity arrow function
+function updateVelocityArrow() {
+  if (!velocityArrow) return;
+  
+  // Update arrow position to match alpha particle
+  velocityArrow.position.copy(alphaParticle.position);
+  
+  // Update arrow direction to match velocity direction
+  const arrowDir = alphaVelocity.clone().normalize();
+  velocityArrow.setDirection(arrowDir);
+  
+  // Update arrow length to match velocity magnitude (scaled for visibility)
+  const arrowLength = alphaVelocity.length() * 0.5;
+  velocityArrow.setLength(arrowLength, 0.5, 0.3);
+}
+
+// Toggle velocity vector visibility
+function toggleVelocityVector() {
+  showVelocityVector = !showVelocityVector;
+  
+  // Update button text
+  document.getElementById('toggleVectorBtn').textContent = 
+    showVelocityVector ? 'Hide Vector' : 'Show Vector';
+  
+  // Update arrow visibility
+  if (velocityArrow) {
+    velocityArrow.visible = showVelocityVector;
+  }
+}
+
+// Popup message functions
+function showPopupMessage(text) {
+  const popup = document.getElementById('popupMessage');
+  document.getElementById('popupText').textContent = text;
+  popup.style.display = 'block';
+}
+
+function hidePopupMessage() {
+  document.getElementById('popupMessage').style.display = 'none';
+}
+
+// Event listener for continue button
+document.getElementById('continueBtn').addEventListener('click', () => {
+    hidePopupMessage();
+    isStopped = false;
+    togglePlayPause(); // Use togglePlayPause to resume
+});
+
+// Removed redundant nameplate for gold nucleus
+
+// Removed redundant nameplate for electron cloud
+// Create text sprite for gold nucleus label
+const nucleusLabelCanvas = document.createElement('canvas');
+const nucleusCtx = nucleusLabelCanvas.getContext('2d');
+nucleusLabelCanvas.width = 256;
+nucleusLabelCanvas.height = 64;
+
+nucleusCtx.fillStyle = 'rgba(0,0,0,0.7)';
+nucleusCtx.fillRect(0, 0, nucleusLabelCanvas.width, nucleusLabelCanvas.height);
+nucleusCtx.font = '24px Arial';
+nucleusCtx.fillStyle = '#ffffff';
+nucleusCtx.textAlign = 'center';
+nucleusCtx.fillText('Gold Nucleus', nucleusLabelCanvas.width/2, nucleusLabelCanvas.height/2);
+
+const nucleusLabelTexture = new THREE.CanvasTexture(nucleusLabelCanvas);
+const nucleusLabelMaterial = new THREE.SpriteMaterial({
+  map: nucleusLabelTexture,
+  transparent: true
+});
+const nucleusLabelSprite = new THREE.Sprite(nucleusLabelMaterial);
+nucleusLabelSprite.scale.set(10, 2.5, 1);
+nucleusLabelSprite.position.set(0, 42, 0);
+goldNucleus.add(nucleusLabelSprite);
+  </script>
+</body>
+</html>
